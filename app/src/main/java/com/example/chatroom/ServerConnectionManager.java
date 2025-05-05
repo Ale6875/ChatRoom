@@ -190,9 +190,16 @@ public class ServerConnectionManager {
     }
 
     private void notifyMessageListeners(String message) {
-        Log.d(TAG, "notifyMessageListeners: Notifying " + messageListeners.size() + " listeners for message: " + message);
-        for (MessageListener listener : messageListeners) {
-            listener.onMessageReceived(message);
-        }
+        Log.d(TAG, "Notifying " + messageListeners.size() + " listeners: " + message);
+        new Handler(Looper.getMainLooper()).post(() -> {
+            for (MessageListener listener : messageListeners) {
+                try {
+                    Log.d(TAG, "Notifying listener: " + listener.getClass().getSimpleName());
+                    listener.onMessageReceived(message);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error notifying listener", e);
+                }
+            }
+        });
     }
 }

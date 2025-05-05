@@ -48,10 +48,11 @@ public class GameOptionsBottomSheet extends BottomSheetDialogFragment {
         });
 
         fourInARowButton.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "Launching 4 In A Row!", Toast.LENGTH_SHORT).show();
-            /*Intent intent = new Intent(requireContext(), FourInARowActivity.class);
-            startActivity(intent);
-            dismiss();*/
+            Toast.makeText(requireContext(), "Requesting Four in a Row!", Toast.LENGTH_SHORT).show();
+            if (chatActivity != null) {
+                chatActivity.initiateFourInARowGame();
+            }
+            dismiss();
         });
 
         return view;

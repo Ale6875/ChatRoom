@@ -26,8 +26,6 @@ import java.util.Random;
 
 public class ChatActivity extends AppCompatActivity {
 
-    private static final String SERVER_IP = "56.228.15.83";
-    private static final int SERVER_PORT = 12345;
     private static final String TAG = "ChatActivity";
     private Map<String, View[]> activeGameInvites = new HashMap<>();
     private EditText messageEditText;
@@ -36,13 +34,9 @@ public class ChatActivity extends AppCompatActivity {
     private String username;
     private LinearLayout chatLinearLayout;
     private Button openGameMenuButton;
-    private LinearLayout gameSelectionLayout;
-    private Button ticTacToeButton;
-    private Button fourInARowButton;
-    private boolean isGameMenuVisible = false;
+    private ScrollView chatScrollView;
     private ServerConnectionManager connectionManager;
     private Handler handler = new Handler(Looper.getMainLooper());
-    private ScrollView chatScrollView;
 
     private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
         @Override
@@ -52,13 +46,19 @@ public class ChatActivity extends AppCompatActivity {
 
             if ("chat_message".equals(intent.getAction())) {
                 if (message.startsWith("NEW_TICTACTOE:")) {
-                    showGameInvite(message);
+                    showGameInvite(message, "Tic Tac Toe");
+                } else if (message.startsWith("NEW_FOURINAROW:")) {
+                    showGameInvite(message, "Four in a Row");
                 } else if (message.startsWith("JOIN_TICTACTOE:")) {
-                    handleJoinTicTacToe(message);
+                    handleJoinGame(message, "Tic Tac Toe");
+                } else if (message.startsWith("JOIN_FOURINAROW:")) {
+                    handleJoinGame(message, "Four in a Row");
                 } else if (message.startsWith("START_TICTACTOE:")) {
-                    handleStartTicTacToe(message);
-                } else if (message.startsWith("EXIT_TICTACTOE:")) {
-                    handleGameExit(message);  // Handle exit messages
+                    handleStartGame(message, TicTacToeActivity.class);
+                } else if (message.startsWith("START_FOURINAROW:")) {
+                    handleStartGame(message, FourInARowActivity.class);
+                } else if (message.startsWith("EXIT_TICTACTOE:") || message.startsWith("EXIT_FOURINAROW:")) {
+                    handleGameExit(message);
                 } else {
                     chatTextView.append(message + "\n");
                 }
@@ -66,11 +66,9 @@ public class ChatActivity extends AppCompatActivity {
         }
     };
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "ChatActivity onCreate() started on this device.");
         setContentView(R.layout.activity_chat);
 
         messageEditText = findViewById(R.id.messageEditText);
@@ -79,15 +77,9 @@ public class ChatActivity extends AppCompatActivity {
         chatLinearLayout = findViewById(R.id.chatLinearLayout);
         Button exitButton = findViewById(R.id.exitButton);
         openGameMenuButton = findViewById(R.id.openGameMenuButton);
-        gameSelectionLayout = findViewById(R.id.gameSelectionLayout);
-        ticTacToeButton = findViewById(R.id.ticTacToeButton);
-        fourInARowButton = findViewById(R.id.fourInARowButton);
         chatScrollView = findViewById(R.id.chatScrollView);
 
         username = getIntent().getStringExtra("USERNAME");
-        Log.d(TAG, "Intent extra USERNAME: " + getIntent().getStringExtra("USERNAME"));
-        Log.d(TAG, "Username on this device: " + username);
-
         connectionManager = ServerConnectionManager.getInstance(username);
 
         sendButton.setOnClickListener(v -> {
@@ -109,24 +101,6 @@ public class ChatActivity extends AppCompatActivity {
             GameOptionsBottomSheet gameOptionsBottomSheet = new GameOptionsBottomSheet();
             gameOptionsBottomSheet.show(fragmentManager, gameOptionsBottomSheet.getTag());
         });
-
-        ticTacToeButton.setOnClickListener(v -> {
-            initiateTicTacToeGame();
-        });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("chat_message"));
-        Log.d(TAG, "ChatActivity - BroadcastReceiver registered in onResume()");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
-        Log.d(TAG, "ChatActivity - BroadcastReceiver unregistered in onPause()");
     }
 
     public void initiateTicTacToeGame() {
@@ -135,11 +109,17 @@ public class ChatActivity extends AppCompatActivity {
         connectionManager.sendMessage(inviteMessage);
     }
 
+    public void initiateFourInARowGame() {
+        String gameId = generateGameId();
+        String inviteMessage = "NEW_FOURINAROW:" + gameId + ":" + username;
+        connectionManager.sendMessage(inviteMessage);
+    }
+
     private String generateGameId() {
         return String.valueOf(System.currentTimeMillis() + new Random().nextInt(1000));
     }
 
-    private void showGameInvite(String message) {
+    private void showGameInvite(String message, String gameType) {
         String[] parts = message.split(":");
         if (parts.length != 3) return;
 
@@ -147,12 +127,10 @@ public class ChatActivity extends AppCompatActivity {
         final String initiatorUsername = parts[2];
 
         handler.post(() -> {
-            // Remove previous invite if exists
             removeExistingInvite(gameId);
 
-            // Create new invite UI
             TextView inviteText = new TextView(this);
-            inviteText.setText(initiatorUsername + " wants to play Tic Tac Toe!");
+            inviteText.setText(initiatorUsername + " wants to play " + gameType + "!");
             inviteText.setTextSize(16);
             inviteText.setPadding(0, 16, 0, 8);
 
@@ -160,25 +138,22 @@ public class ChatActivity extends AppCompatActivity {
             joinButton.setText("Join Game");
             joinButton.setAllCaps(false);
 
-            // Different button states
             if (initiatorUsername.equals(username)) {
                 joinButton.setText("Your Game - Waiting...");
                 joinButton.setEnabled(false);
             } else {
                 joinButton.setOnClickListener(v -> {
-                    connectionManager.sendMessage("JOIN_REQUEST:" + gameId + ":" + initiatorUsername + ":" + username);
+                    String joinMessage = "JOIN_REQUEST:" +
+                            (gameType.equals("Tic Tac Toe") ? "TICTACTOE" : "FOURINAROW") +
+                            ":" + gameId + ":" + initiatorUsername + ":" + username;
+                    connectionManager.sendMessage(joinMessage);
                     removeExistingInvite(gameId);
                 });
             }
 
-            // Add to layout
             chatLinearLayout.addView(inviteText);
             chatLinearLayout.addView(joinButton);
-
-            // Store for later removal
             activeGameInvites.put(gameId, new View[]{inviteText, joinButton});
-
-            // Scroll to show the invite
             chatScrollView.post(() -> chatScrollView.fullScroll(View.FOCUS_DOWN));
         });
     }
@@ -192,15 +167,30 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private void handleJoinTicTacToe(String message) {
+    private void handleJoinGame(String message, String gameType) {
         String[] parts = message.split(":");
-        if (parts.length == 4 && parts[0].equals("JOIN_TICTACTOE")) {
-            Log.d(TAG, "Received JOIN_TICTACTOE confirmation: " + message);
+        if (parts.length == 4) {
             handler.post(() -> {
-                Toast.makeText(ChatActivity.this, "You have joined the Tic Tac Toe game!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChatActivity.this,
+                        "You have joined the " + gameType + " game!",
+                        Toast.LENGTH_SHORT).show();
             });
-        } else {
-            Log.e(TAG, "Invalid JOIN_TICTACTOE message format received: " + message);
+        }
+    }
+
+    private void handleStartGame(String message, Class<?> gameActivityClass) {
+        String[] parts = message.split(":");
+        if (parts.length == 4) {
+            String gameId = parts[1];
+            String player1 = parts[2];
+            String player2 = parts[3];
+
+            Intent intent = new Intent(ChatActivity.this, gameActivityClass);
+            intent.putExtra("PLAYER1", player1);
+            intent.putExtra("PLAYER2", player2);
+            intent.putExtra("GAME_ID", gameId);
+            intent.putExtra("USERNAME", username);
+            startActivity(intent);
         }
     }
 
@@ -211,29 +201,21 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private void handleStartTicTacToe(String message) {
-        // Format: START_TICTACTOE:gameId:player1Username:player2Username
-        String[] parts = message.split(":");
-        if (parts.length == 4 && parts[0].equals("START_TICTACTOE")) {
-            String gameId = parts[1];
-            String player1 = parts[2];
-            String player2 = parts[3];
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(messageReceiver, new IntentFilter("chat_message"));
+    }
 
-            Intent intent = new Intent(ChatActivity.this, TicTacToeActivity.class);
-            intent.putExtra("PLAYER1", player1);
-            intent.putExtra("PLAYER2", player2);
-            intent.putExtra("GAME_ID", gameId);
-            intent.putExtra("USERNAME", username);
-            Log.d(TAG, "Starting TicTacToeActivity with intent: " + intent.toString());  // ADD THIS LOG
-            startActivity(intent);
-        } else {
-            Log.e(TAG, "Invalid START_TICTACTOE message format: " + message);
-        }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "ChatActivity onDestroy() - Disconnecting.");
     }
 }

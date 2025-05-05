@@ -27,7 +27,7 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
             Log.d(TAG, "Service received username: " + username);
             if (username != null) {
                 connectionManager = ServerConnectionManager.getInstance(username);
-                //  CRITICAL CHANGE:  Add ONLY if the list is empty!
+                // Critical change: Add ONLY if the list is empty
                 if (connectionManager.messageListeners.isEmpty()) {
                     connectionManager.addMessageListener(this);
                     Log.d(TAG, "onStartCommand: Added listener (MyChatService). Total Listeners: " + connectionManager.messageListeners.size());
@@ -37,7 +37,6 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
                 if (!connectionManager.isConnected()) {
                     connectionManager.connectAndListen();
                 }
-
             } else {
                 Log.w(TAG, "No username provided to the service.");
                 stopSelf();
@@ -68,22 +67,52 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
     public void onMessageReceived(String message) {
         Log.d(TAG, "MyChatService - Received message: " + message);
 
-        if (message.startsWith("MOVE:") || message.startsWith("GAME_OVER:") ||
-                message.startsWith("RESET_GAME_REQUEST:") || message.startsWith("RESET_GAME_CONFIRMED:")) {
-            // Route game-related messages to TicTacToeActivity
-            Intent gameIntent = new Intent("tictactoe_move");
+        if (message.startsWith("MOVE:") || message.startsWith("GAME_OVER:")) {
+            // Route game-related messages to the appropriate activity
+            Intent gameIntent;
+            if (message.contains("TICTACTOE")) {
+                gameIntent = new Intent("tictactoe_move");
+            } else {
+                gameIntent = new Intent("fourinarow_move");
+            }
             gameIntent.putExtra("message", message);
             LocalBroadcastManager.getInstance(this).sendBroadcast(gameIntent);
         }
         else if (message.startsWith("CHAT:")) {
             Log.d(TAG, "MyChatService - Handling CHAT message: " + message);
-            // ... (Your CHAT message handling code)
+            Intent chatIntent = new Intent("chat_message");
+            chatIntent.putExtra("message", message);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(chatIntent);
         }
         else if (message.startsWith("JOINED:")) {
             Log.d(TAG, "MyChatService - Handling JOINED message: " + message);
             Intent joinedIntent = new Intent("chat_message");
             joinedIntent.putExtra("message", message);
             LocalBroadcastManager.getInstance(this).sendBroadcast(joinedIntent);
+        }
+        else if (message.startsWith("NEW_TICTACTOE:") || message.startsWith("NEW_FOURINAROW:")) {
+            Log.d(TAG, "MyChatService - Handling game invite message: " + message);
+            Intent gameInviteIntent = new Intent("chat_message");
+            gameInviteIntent.putExtra("message", message);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(gameInviteIntent);
+        }
+        else if (message.startsWith("JOIN_TICTACTOE:") || message.startsWith("JOIN_FOURINAROW:")) {
+            Log.d(TAG, "MyChatService - Handling game join message: " + message);
+            Intent gameJoinIntent = new Intent("chat_message");
+            gameJoinIntent.putExtra("message", message);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(gameJoinIntent);
+        }
+        else if (message.startsWith("START_TICTACTOE:") || message.startsWith("START_FOURINAROW:")) {
+            Log.d(TAG, "MyChatService - Handling game start message: " + message);
+            Intent gameStartIntent = new Intent("chat_message");
+            gameStartIntent.putExtra("message", message);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(gameStartIntent);
+        }
+        else if (message.startsWith("EXIT_TICTACTOE:") || message.startsWith("EXIT_FOURINAROW:")) {
+            Log.d(TAG, "MyChatService - Handling game exit message: " + message);
+            Intent gameExitIntent = new Intent("chat_message");
+            gameExitIntent.putExtra("message", message);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(gameExitIntent);
         }
         else {
             // Default to chat message

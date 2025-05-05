@@ -28,6 +28,7 @@
         <activity android:name=".LoginActivity" />
         <activity android:name=".ChatActivity" />
         <activity android:name=".TicTacToeActivity" />
+        <activity android:name=".FourInARowActivity"/>
         <service android:name=".MyChatService" />
     </application>
 
