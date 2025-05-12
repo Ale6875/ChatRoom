@@ -20,14 +20,13 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
     private FourInARowView gameView;
     private TextView statusTextView;
     private Button resetButton, exitButton;
-
     private String gameId, player1, player2, username;
     private int myPlayerNumber;
     private boolean isMyTurn = false;
     private ServerConnectionManager connectionManager;
     private Handler handler = new Handler();
     private boolean opponentRequestedReset = false;
-    private int initialPlayer = 1; // Alternate who starts after reset
+    private int initialPlayer = 1;
 
 
     private final BroadcastReceiver moveReceiver = new BroadcastReceiver() {
@@ -65,7 +64,7 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
                 String[] parts = msg.split(":");
                 if (parts.length == 2 && parts[1].equals(gameId)) {
                     Toast.makeText(FourInARowActivity.this, "The opponent has left the game.", Toast.LENGTH_LONG).show();
-                    finish(); // Close the activity
+                    finish();
                 }
             }
 
@@ -92,7 +91,6 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
                 if (parts.length >= 2) {
                     gameId = parts[1];
 
-                    // Alternate who starts
                     initialPlayer = (initialPlayer == 1) ? 2 : 1;
                     isMyTurn = (myPlayerNumber == initialPlayer);
 

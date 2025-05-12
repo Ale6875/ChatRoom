@@ -79,22 +79,20 @@ public class TicTacToeView extends View {
         int height = getHeight();
         int cellSize = width / boardSize;
 
-        // Draw grid lines
         for (int i = 1; i < boardSize; i++) {
             canvas.drawLine(i * cellSize, 0, i * cellSize, height, gridPaint);
             canvas.drawLine(0, i * cellSize, width, i * cellSize, gridPaint);
         }
 
-        // Draw X's and O's
         for (int i = 0; i < boardSize; i++) {
             for (int j = 0; j < boardSize; j++) {
-                if (board[i][j] == 1) { // Draw X
+                if (board[i][j] == 1) {
                     float centerX = j * cellSize + cellSize / 2f;
                     float centerY = i * cellSize + cellSize / 2f;
                     float offset = cellSize * MARK_SIZE_PERCENTAGE;
                     canvas.drawLine(centerX - offset, centerY - offset, centerX + offset, centerY + offset, xPaint);
                     canvas.drawLine(centerX + offset, centerY - offset, centerX - offset, centerY + offset, xPaint);
-                } else if (board[i][j] == 2) { // Draw O
+                } else if (board[i][j] == 2) {
                     float centerX = j * cellSize + cellSize / 2f;
                     float centerY = i * cellSize + cellSize / 2f;
                     float radius = cellSize / 2f - cellSize * MARK_SIZE_PERCENTAGE;
@@ -124,7 +122,6 @@ public class TicTacToeView extends View {
         return false;
     }
 
-    // TicTacToeView.java
     public boolean markCell(int row, int col, int player) {
         Log.d("TicTacToeView", "markCell(" + row + ", " + col + ", " + player + ") called");
         Log.d("TicTacToeView", "  row = " + row + ", col = " + col + ", player = " + player);
@@ -135,45 +132,8 @@ public class TicTacToeView extends View {
         }
         board[row][col] = player;
         Log.d("TicTacToeView", "  Board updated: board[" + row + "][" + col + "] = " + player);
-        invalidate(); // <---  Ensure invalidate() is called HERE too!
+        invalidate();
         Log.d("TicTacToeView", "  View invalidated");
-        return true;
-    }
-
-    private boolean checkWin(int player) {
-        // Check rows
-        for (int i = 0; i < boardSize; i++) {
-            if (board[i][0] == player && board[i][1] == player && board[i][2] == player) {
-                return true;
-            }
-        }
-
-        // Check columns
-        for (int j = 0; j < boardSize; j++) {
-            if (board[0][j] == player && board[1][j] == player && board[2][j] == player) {
-                return true;
-            }
-        }
-
-        // Check diagonals
-        if (board[0][0] == player && board[1][1] == player && board[2][2] == player) {
-            return true;
-        }
-        if (board[0][2] == player && board[1][1] == player && board[2][0] == player) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean isBoardFull() {
-        for (int i = 0; i < boardSize; i++) {
-            for (int j = 0; j < boardSize; j++) {
-                if (board[i][j] == 0) {
-                    return false;
-                }
-            }
-        }
         return true;
     }
 
@@ -194,14 +154,4 @@ public class TicTacToeView extends View {
         return currentState;
     }
 
-    public void setBoardState(int[][] newState) {
-        if (newState != null && newState.length == boardSize && newState[0].length == boardSize) {
-            this.board = newState;
-            invalidate();
-        }
-    }
-
-    public boolean isEmpty(int row, int col) {  // Added isEmpty()
-        return board[row][col] == 0;
-    }
 }

@@ -44,7 +44,7 @@ public class FourInARowView extends View {
         float cellHeight = getHeight() / (float) ROWS;
 
         Paint boardPaint = new Paint();
-        boardPaint.setColor(Color.rgb(33, 150, 243)); // Blue board background
+        boardPaint.setColor(Color.rgb(33, 150, 243));
         canvas.drawRect(0, 0, getWidth(), getHeight(), boardPaint);
 
         for (int row = 0; row < ROWS; row++) {
@@ -60,7 +60,7 @@ public class FourInARowView extends View {
                     paint = player2Paint;
                 } else {
                     paint = new Paint();
-                    paint.setColor(Color.WHITE); // Empty slot
+                    paint.setColor(Color.WHITE);
                 }
 
                 canvas.drawCircle(cx, cy, radius, paint);

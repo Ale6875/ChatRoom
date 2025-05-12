@@ -6,7 +6,6 @@
     android:padding="16dp"
     android:background="?android:windowBackground">
 
-    <!-- Title -->
     <TextView
         android:id="@+id/gameTitleText"
         android:layout_width="match_parent"

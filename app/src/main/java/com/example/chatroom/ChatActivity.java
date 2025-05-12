@@ -17,7 +17,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.core.content.ContextCompat;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
@@ -29,8 +28,6 @@ import java.util.Random;
 
 public class ChatActivity extends AppCompatActivity {
 
-    private static final String SERVER_IP = "56.228.15.83";
-    private static final int SERVER_PORT = 12345;
     private static final String TAG = "ChatActivity";
     private Map<String, View[]> activeGameInvites = new HashMap<>();
     private EditText messageEditText;
@@ -178,10 +175,8 @@ public class ChatActivity extends AppCompatActivity {
         final String initiatorUsername = parts[2];
 
         handler.post(() -> {
-            // Remove previous invite if exists
             removeExistingInvite(gameId);
 
-            // Create new invite UI
             TextView inviteText = new TextView(this);
             inviteText.setText(initiatorUsername + " wants to play Tic Tac Toe!");
             inviteText.setTextSize(16);
@@ -191,7 +186,6 @@ public class ChatActivity extends AppCompatActivity {
             joinButton.setText("Join Game");
             joinButton.setAllCaps(false);
 
-            // Different button states
             if (initiatorUsername.equals(username)) {
                 joinButton.setText("Your Game - Waiting...");
                 joinButton.setEnabled(false);
@@ -202,14 +196,11 @@ public class ChatActivity extends AppCompatActivity {
                 });
             }
 
-            // Add to layout
             chatLinearLayout.addView(inviteText);
             chatLinearLayout.addView(joinButton);
 
-            // Store for later removal
             activeGameInvites.put(gameId, new View[]{inviteText, joinButton});
 
-            // Scroll to show the invite
             chatScrollView.post(() -> chatScrollView.fullScroll(View.FOCUS_DOWN));
         });
     }
@@ -259,7 +250,6 @@ public class ChatActivity extends AppCompatActivity {
             String player1 = parts[2];
             String player2 = parts[3];
 
-            // Start the game activity
             Intent intent = new Intent(ChatActivity.this, TicTacToeActivity.class);
             intent.putExtra("PLAYER1", player1);
             intent.putExtra("PLAYER2", player2);
@@ -267,10 +257,8 @@ public class ChatActivity extends AppCompatActivity {
             intent.putExtra("USERNAME", username);
             startActivity(intent);
 
-            // === NEW: Remove duplicate prompt ===
             removeExistingInvite(gameId);
 
-            // === Add placeholder for game status ===
             handler.post(() -> {
                 TextView infoText = new TextView(this);
                 infoText.setText("Tic Tac Toe: " + player1 + " vs " + player2);
@@ -353,7 +341,6 @@ public class ChatActivity extends AppCompatActivity {
             String player1 = parts[2];
             String player2 = parts[3];
 
-            // Start game activity
             Intent intent = new Intent(ChatActivity.this, FourInARowActivity.class);
             intent.putExtra("PLAYER1", player1);
             intent.putExtra("PLAYER2", player2);
@@ -361,10 +348,8 @@ public class ChatActivity extends AppCompatActivity {
             intent.putExtra("USERNAME", username);
             startActivity(intent);
 
-            // === NEW: Ensure no duplicate prompt ===
             removeExistingInvite(gameId);
 
-            // === Add placeholder for game status ===
             handler.post(() -> {
                 TextView infoText = new TextView(this);
                 infoText.setText("Four in a Row: " + player1 + " vs " + player2);

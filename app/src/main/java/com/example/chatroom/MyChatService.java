@@ -27,7 +27,6 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
             Log.d(TAG, "Service received username: " + username);
             if (username != null) {
                 connectionManager = ServerConnectionManager.getInstance(username);
-                // Critical change: Add ONLY if the list is empty
                 if (connectionManager.messageListeners.isEmpty()) {
                     connectionManager.addMessageListener(this);
                     Log.d(TAG, "onStartCommand: Added listener (MyChatService). Total Listeners: " + connectionManager.messageListeners.size());
@@ -68,7 +67,6 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
         Log.d(TAG, "MyChatService - Received message: " + message);
 
         if (message.startsWith("MOVE:") || message.startsWith("GAME_OVER:")) {
-            // Route game-related messages to the appropriate activity
             Intent gameIntent;
             gameIntent = new Intent("tictactoe_move");
             gameIntent.putExtra("message", message);
@@ -111,7 +109,6 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
             LocalBroadcastManager.getInstance(this).sendBroadcast(gameExitIntent);
         }
         else {
-            // Default to chat message
             Log.d(TAG, "MyChatService - Sending chat message to activity: " + message);
             Intent chatIntent = new Intent("chat_message");
             chatIntent.putExtra("message", message);

@@ -29,11 +29,9 @@ public class LoginActivity extends AppCompatActivity {
     private EditText usernameEditText;
     private EditText passwordEditText;
     private Button loginButton;
-    private TextView registerTextView;
     private Button backButton;
     private static final String TAG = "LoginActivity";
     private static final String LOGIN_URL = "http://56.228.15.83/login.php";
-    private ServerConnectionManager connectionManager; // Use ServerConnectionManager
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

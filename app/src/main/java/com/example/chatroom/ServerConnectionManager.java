@@ -60,7 +60,6 @@ public class ServerConnectionManager {
                 writer = new PrintWriter(socket.getOutputStream(), true);
                 reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                // ---  Critical: Check for successful connection before sending username ---
                 if (socket.isConnected() && writer != null && reader != null) {
                     writer.println(username);
                     Log.d(TAG, "Sent username: " + username);
@@ -68,22 +67,15 @@ public class ServerConnectionManager {
                     Log.d(TAG, "Connected to server!");
                     startListeningForMessages();
                 } else {
-                    // Connection failed immediately
                     Log.e(TAG, "Failed to establish connection to server.");
-                    handler.post(() -> {
-                        //  Notify UI (if needed) -  Consider a callback to LoginActivity
-                    });
                     isConnected = false;
-                    closeConnection(); // Clean up resources
+                    closeConnection();
                 }
 
             } catch (IOException e) {
-                Log.e(TAG, "Error connecting to server: " + e.getMessage(), e); // Log the exception
-                handler.post(() -> {
-                    // Notify UI (if needed) - Consider a callback to LoginActivity
-                });
+                Log.e(TAG, "Error connecting to server: " + e.getMessage(), e);
                 isConnected = false;
-                closeConnection(); // Clean up resources
+                closeConnection();
             }
         }).start();
     }
@@ -102,12 +94,12 @@ public class ServerConnectionManager {
                 handleDisconnect();
             } catch (IOException e) {
                 if (isConnected) {
-                    Log.e(TAG, "Error reading from server: " + e.getMessage(), e); // Log the exception
+                    Log.e(TAG, "Error reading from server: " + e.getMessage(), e);
                     handleDisconnect();
                 }
 
             } finally {
-                disconnect(); // Ensure disconnect is called in all cases
+                disconnect();
             }
         });
         messageListenerThread.start();
@@ -118,9 +110,6 @@ public class ServerConnectionManager {
             isConnected = false;
             Log.d(TAG, "Disconnected from server.");
             closeConnection();
-            handler.post(() -> {
-                // Notify UI (if needed)
-            });
         }
     }
 
@@ -132,9 +121,6 @@ public class ServerConnectionManager {
             }).start();
         } else {
             Log.w(TAG, "Not connected.  Message not sent: " + message);
-            handler.post(() -> {
-                //  Notify UI (if needed)
-            });
         }
     }
 
@@ -160,16 +146,12 @@ public class ServerConnectionManager {
                 socket = null;
             }
         } catch (IOException e) {
-            Log.e(TAG, "Error closing connection: " + e.getMessage(), e); // Log the exception
+            Log.e(TAG, "Error closing connection: " + e.getMessage(), e);
         } finally {
             writer = null;
             reader = null;
             socket = null;
         }
-    }
-
-    public BufferedReader getReader() {
-        return reader;
     }
 
     public void addMessageListener(MessageListener listener) {
@@ -186,7 +168,7 @@ public class ServerConnectionManager {
     public void removeMessageListener(MessageListener listener) {
         messageListeners.remove(listener);
         Log.d(TAG, "Removed MessageListener: " + listener.getClass().getSimpleName() +
-                ". Total listeners: " + messageListeners.size());  // Debug log
+                ". Total listeners: " + messageListeners.size());
     }
 
     private void notifyMessageListeners(String message) {
