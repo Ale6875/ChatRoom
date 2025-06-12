@@ -31,7 +31,7 @@ public class LoginActivity extends AppCompatActivity {
     private Button loginButton;
     private Button backButton;
     private static final String TAG = "LoginActivity";
-    private static final String LOGIN_URL = "http://56.228.15.83/login.php";
+    private static final String LOGIN_URL = "http://51.21.214.199/login.php";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,25 +64,24 @@ public class LoginActivity extends AppCompatActivity {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d(TAG, "PHP Response: " + response); // Log the entire response
+                        Log.d(TAG, "PHP Response: " + response);
                         try {
                             JSONObject jsonResponse = new JSONObject(response);
                             boolean success = jsonResponse.getBoolean("success");
                             String message = jsonResponse.getString("message");
-                            String returnedUsername = jsonResponse.optString("username", ""); // Use optString
+                            String returnedUsername = jsonResponse.optString("username", "");
 
                             Log.d(TAG, "Success: " + success);
                             Log.d(TAG, "Message: " + message);
                             Log.d(TAG, "Username: " + returnedUsername);
 
                             if (success) {
-                                // Initialize the connection manager *once* here
                                 Intent serviceIntent = new Intent(LoginActivity.this, MyChatService.class);
-                                serviceIntent.putExtra("USERNAME", returnedUsername); // Use returnedUsername
+                                serviceIntent.putExtra("USERNAME", returnedUsername);
                                 startService(serviceIntent);
 
                                 Intent intent = new Intent(LoginActivity.this, ChatActivity.class);
-                                intent.putExtra("USERNAME", returnedUsername); // Use returnedUsername
+                                intent.putExtra("USERNAME", returnedUsername);
                                 startActivity(intent);
                                 finish();
                             } else {

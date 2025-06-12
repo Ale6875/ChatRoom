@@ -27,7 +27,7 @@ public class RegistrationActivity extends AppCompatActivity {
     private Button registerButton;
     private Button backButton;
 
-    private static final String REGISTER_URL = "http:/56.228.15.83/register.php";
+    private static final String REGISTER_URL = "http:/51.21.214.199/register.php";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

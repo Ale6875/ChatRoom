@@ -15,7 +15,7 @@ import java.util.List;
 
 public class ServerConnectionManager {
 
-    private static final String SERVER_IP = "56.228.15.83";
+    private static final String SERVER_IP = "51.21.214.199";
     private static final int SERVER_PORT = 12345;
     private static final String TAG = "ServerConnectionManager";
 
