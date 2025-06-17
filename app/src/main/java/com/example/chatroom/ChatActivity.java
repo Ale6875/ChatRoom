@@ -130,6 +130,13 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         exitButton.setOnClickListener(v -> {
+            connectionManager.sendMessage("DISCONNECT:" + username);
+
+            Intent serviceIntent = new Intent(ChatActivity.this, MyChatService.class);
+            stopService(serviceIntent);
+
+            connectionManager.disconnect();
+
             Intent intent = new Intent(ChatActivity.this, MainActivity.class);
             startActivity(intent);
             finish();

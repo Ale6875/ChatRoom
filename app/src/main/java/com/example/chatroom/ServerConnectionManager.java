@@ -127,6 +127,14 @@ public class ServerConnectionManager {
     public void disconnect() {
         if (isConnected) {
             isConnected = false;
+            try {
+                if (writer != null) {
+                    writer.println("DISCONNECT:" + username);
+                    writer.close();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error sending disconnect message", e);
+            }
             closeConnection();
         }
     }

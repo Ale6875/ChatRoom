@@ -52,6 +52,7 @@ public class MyChatService extends Service implements ServerConnectionManager.Me
         super.onDestroy();
         Log.d(TAG, "Service onDestroy");
         if (connectionManager != null) {
+            connectionManager.sendMessage("DISCONNECT:" + username);
             connectionManager.disconnect();
             connectionManager.removeMessageListener(this);
         }
