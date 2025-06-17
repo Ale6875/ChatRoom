@@ -65,14 +65,13 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
                 if (parts.length == 3 && parts[1].equals(gameId)) {
                     int winner = Integer.parseInt(parts[2]);
                     handler.post(() -> {
-                        if (!gameEnded) { // Only process if game hasn't already ended
+                        if (!gameEnded) {
                             gameEnded = true;
                             String result = (winner == 0) ? "It's a draw!" :
                                     (winner == myPlayerNumber) ? "You won!" : "Opponent won!";
                             statusTextView.setText(result);
                             isMyTurn = false;
 
-                            // Update stats only here
                             if (winner == 0) {
                                 updateStats("fourinarow", "draw");
                             } else if (winner == myPlayerNumber) {
@@ -118,7 +117,7 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
 
                     gameView.resetBoard();
                     opponentRequestedReset = false;
-                    gameEnded = false; // Reset game ended flag
+                    gameEnded = false;
 
                     statusTextView.setText("Game reset! " + (isMyTurn ? "Your turn" : "Opponent's turn"));
                     Toast.makeText(FourInARowActivity.this, "Game reset!", Toast.LENGTH_SHORT).show();

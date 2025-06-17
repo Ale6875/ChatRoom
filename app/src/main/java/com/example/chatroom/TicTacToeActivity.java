@@ -163,7 +163,6 @@ public class TicTacToeActivity extends AppCompatActivity implements TicTacToeVie
                 isMyTurn = false;
                 updateTurnDisplay();
 
-                // Update stats
                 if (player == myPlayerNumber) {
                     updateStats("tictactoe", "win");
                 } else {
@@ -182,7 +181,6 @@ public class TicTacToeActivity extends AppCompatActivity implements TicTacToeVie
                 isMyTurn = false;
                 updateTurnDisplay();
 
-                // Update stats
                 updateStats("tictactoe", "draw");
             }
         });

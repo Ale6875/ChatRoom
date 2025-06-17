@@ -61,6 +61,11 @@ public class RegistrationActivity extends AppCompatActivity {
             return;
         }
 
+        if (password.length() > 0 && password.charAt(0) == ' ') {
+            Toast.makeText(this, "Password cannot start with a blank space", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (!password.equals(confirmPassword)) {
             Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
             return;

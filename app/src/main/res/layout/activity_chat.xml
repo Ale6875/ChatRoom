@@ -58,7 +58,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Bottom controls row -->
     <LinearLayout
         android:id="@+id/bottomControlsLayout"
         android:layout_width="match_parent"
@@ -68,7 +67,6 @@
         android:background="#f0f0f0"
         android:padding="8dp">
 
-        <!-- Stats, Scoreboard and Games row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -100,7 +98,6 @@
                 android:text="Games"/>
         </LinearLayout>
 
-        <!-- Exit button below the row -->
         <Button
             android:id="@+id/exitButton"
             android:layout_width="wrap_content"
@@ -109,7 +106,6 @@
             android:layout_gravity="center_horizontal"/>
     </LinearLayout>
 
-    <!-- Hidden game selection layout -->
     <LinearLayout
         android:id="@+id/gameSelectionLayout"
         android:layout_width="match_parent"

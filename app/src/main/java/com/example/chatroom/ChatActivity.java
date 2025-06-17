@@ -107,7 +107,6 @@ public class ChatActivity extends AppCompatActivity {
         Log.d(TAG, "ChatActivity onCreate() started on this device.");
         setContentView(R.layout.activity_chat);
 
-        // Initialize views
         messageEditText = findViewById(R.id.messageEditText);
         sendButton = findViewById(R.id.sendButton);
         chatTextView = findViewById(R.id.chatTextView);
@@ -118,18 +117,14 @@ public class ChatActivity extends AppCompatActivity {
         statsButton = findViewById(R.id.statsButton);
         scoreboardButton = findViewById(R.id.scoreboardButton);
 
-        // Initialize Volley request queue
         requestQueue = Volley.newRequestQueue(this);
 
-        // Get username from intent
         username = getIntent().getStringExtra("USERNAME");
         Log.d(TAG, "Intent extra USERNAME: " + getIntent().getStringExtra("USERNAME"));
         Log.d(TAG, "Username on this device: " + username);
 
-        // Initialize connection manager
         connectionManager = ServerConnectionManager.getInstance(username);
 
-        // Set up button click listeners
         setupButtonListeners();
 
     }
@@ -415,7 +410,6 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    // FOUR IN A ROW
     public void initiateFourInARowGame() {
         String gameId = generateGameId();
         String inviteMessage = "NEW_FOURINAROW:" + gameId + ":" + username;
