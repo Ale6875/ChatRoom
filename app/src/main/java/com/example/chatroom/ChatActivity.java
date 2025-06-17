@@ -22,6 +22,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -29,6 +41,9 @@ import java.util.Random;
 public class ChatActivity extends AppCompatActivity {
 
     private static final String TAG = "ChatActivity";
+    private static final String STATS_URL = "http://51.21.214.199/get_stats.php";
+    private static final String SCOREBOARD_URL = "http://51.21.214.199/get_scoreboard.php";
+
     private Map<String, View[]> activeGameInvites = new HashMap<>();
     private EditText messageEditText;
     private Button sendButton;
@@ -40,6 +55,9 @@ public class ChatActivity extends AppCompatActivity {
     private ServerConnectionManager connectionManager;
     private Handler handler = new Handler(Looper.getMainLooper());
     private ScrollView chatScrollView;
+    private Button statsButton;
+    private Button scoreboardButton;
+    private RequestQueue requestQueue;
 
     private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
         @Override
@@ -83,6 +101,181 @@ public class ChatActivity extends AppCompatActivity {
         }
     };
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "ChatActivity onCreate() started on this device.");
+        setContentView(R.layout.activity_chat);
+
+        // Initialize views
+        messageEditText = findViewById(R.id.messageEditText);
+        sendButton = findViewById(R.id.sendButton);
+        chatTextView = findViewById(R.id.chatTextView);
+        chatLinearLayout = findViewById(R.id.chatLinearLayout);
+        openGameMenuButton = findViewById(R.id.openGameMenuButton);
+        gameSelectionLayout = findViewById(R.id.gameSelectionLayout);
+        chatScrollView = findViewById(R.id.chatScrollView);
+        statsButton = findViewById(R.id.statsButton);
+        scoreboardButton = findViewById(R.id.scoreboardButton);
+
+        // Initialize Volley request queue
+        requestQueue = Volley.newRequestQueue(this);
+
+        // Get username from intent
+        username = getIntent().getStringExtra("USERNAME");
+        Log.d(TAG, "Intent extra USERNAME: " + getIntent().getStringExtra("USERNAME"));
+        Log.d(TAG, "Username on this device: " + username);
+
+        // Initialize connection manager
+        connectionManager = ServerConnectionManager.getInstance(username);
+
+        // Set up button click listeners
+        setupButtonListeners();
+
+    }
+
+    private void setupButtonListeners() {
+        sendButton.setOnClickListener(v -> {
+            String message = messageEditText.getText().toString().trim();
+            if (!message.isEmpty()) {
+                connectionManager.sendMessage(message);
+                messageEditText.setText("");
+            }
+        });
+
+        openGameMenuButton.setOnClickListener(v -> {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            GameOptionsBottomSheet gameOptionsBottomSheet = new GameOptionsBottomSheet();
+            gameOptionsBottomSheet.show(fragmentManager, gameOptionsBottomSheet.getTag());
+        });
+
+        statsButton.setOnClickListener(v -> fetchUserStats());
+        scoreboardButton.setOnClickListener(v -> fetchScoreboard());
+
+        Button exitButton = findViewById(R.id.exitButton);
+        exitButton.setOnClickListener(v -> {
+            connectionManager.sendMessage("DISCONNECT:" + username);
+            Intent serviceIntent = new Intent(ChatActivity.this, MyChatService.class);
+            stopService(serviceIntent);
+            connectionManager.disconnect();
+            Intent intent = new Intent(ChatActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        });
+    }
+
+    private void fetchUserStats() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, STATS_URL,
+                response -> {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        if (jsonResponse.getBoolean("success")) {
+                            JSONObject stats = jsonResponse.getJSONObject("stats");
+                            showStatsDialog(stats);
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error parsing stats response", e);
+                        Toast.makeText(ChatActivity.this, "Error loading stats", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                error -> {
+                    Log.e(TAG, "Error fetching stats", error);
+                    Toast.makeText(ChatActivity.this, "Failed to load stats", Toast.LENGTH_SHORT).show();
+                }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("username", username);
+                return params;
+            }
+        };
+
+        requestQueue.add(stringRequest);
+    }
+
+    private void fetchScoreboard() {
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, SCOREBOARD_URL,
+                response -> {
+                    Log.d(TAG, "Scoreboard response: " + response);
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        if (jsonResponse.getBoolean("success")) {
+                            if (jsonResponse.has("scoreboard")) {
+                                JSONArray scoreboard = jsonResponse.getJSONArray("scoreboard");
+                                showScoreboardDialog(scoreboard);
+                            } else {
+                                Toast.makeText(ChatActivity.this, "No scoreboard data available", Toast.LENGTH_LONG).show();
+                            }
+                        } else {
+                            String error = jsonResponse.optString("message", "Unknown error");
+                            Toast.makeText(ChatActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, "JSON parsing error: " + e.getMessage());
+                        Toast.makeText(ChatActivity.this, "Error parsing scoreboard data", Toast.LENGTH_LONG).show();
+                    }
+                },
+                error -> {
+                    Log.e(TAG, "Volley error: " + error.getMessage());
+                    Toast.makeText(ChatActivity.this,
+                            "Network error: " + (error.getMessage() != null ? error.getMessage() : "Check connection"),
+                            Toast.LENGTH_LONG).show();
+                });
+
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                5000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        requestQueue.add(stringRequest);
+    }
+
+    private void showStatsDialog(JSONObject stats) {
+        try {
+            StringBuilder statsText = new StringBuilder();
+            statsText.append("Tic Tac Toe:\n");
+            statsText.append("Wins: ").append(stats.getInt("tictactoe_wins")).append("\n");
+            statsText.append("Losses: ").append(stats.getInt("tictactoe_losses")).append("\n");
+            statsText.append("Draws: ").append(stats.getInt("tictactoe_draws")).append("\n\n");
+            statsText.append("Four in a Row:\n");
+            statsText.append("Wins: ").append(stats.getInt("fourinarow_wins")).append("\n");
+            statsText.append("Losses: ").append(stats.getInt("fourinarow_losses")).append("\n");
+            statsText.append("Draws: ").append(stats.getInt("fourinarow_draws"));
+
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("Your Game Stats")
+                    .setMessage(statsText.toString())
+                    .setPositiveButton("OK", null)
+                    .show();
+        } catch (JSONException e) {
+            Log.e(TAG, "Error processing stats data", e);
+        }
+    }
+
+    private void showScoreboardDialog(JSONArray scoreboard) {
+        try {
+            StringBuilder scoreboardText = new StringBuilder();
+            for (int i = 0; i < Math.min(scoreboard.length(), 5); i++) {
+                JSONObject player = scoreboard.getJSONObject(i);
+                String username = player.optString("up_ime", "Unknown");
+                int wins = player.optInt("total_wins", 0);
+
+                scoreboardText.append(i + 1).append(". ")
+                        .append(username).append(" - ")
+                        .append("Wins: ").append(wins).append("\n");
+            }
+
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("Top Players")
+                    .setMessage(scoreboardText.toString())
+                    .setPositiveButton("OK", null)
+                    .show();
+        } catch (JSONException e) {
+            Log.e(TAG, "Error processing scoreboard data", e);
+            Toast.makeText(this, "Error displaying scoreboard", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void addChatMessage(String message) {
         TextView messageView = new TextView(this);
         messageView.setText(message);
@@ -93,75 +286,10 @@ public class ChatActivity extends AppCompatActivity {
         a.recycle();
 
         messageView.setTextColor(color);
-
         messageView.setPadding(0, 4, 0, 4);
 
         chatLinearLayout.addView(messageView);
         chatScrollView.post(() -> chatScrollView.fullScroll(View.FOCUS_DOWN));
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.d(TAG, "ChatActivity onCreate() started on this device.");
-        setContentView(R.layout.activity_chat);
-
-        messageEditText = findViewById(R.id.messageEditText);
-        sendButton = findViewById(R.id.sendButton);
-        chatTextView = findViewById(R.id.chatTextView);
-        chatLinearLayout = findViewById(R.id.chatLinearLayout);
-        Button exitButton = findViewById(R.id.exitButton);
-        openGameMenuButton = findViewById(R.id.openGameMenuButton);
-        gameSelectionLayout = findViewById(R.id.gameSelectionLayout);
-        chatScrollView = findViewById(R.id.chatScrollView);
-
-        username = getIntent().getStringExtra("USERNAME");
-        Log.d(TAG, "Intent extra USERNAME: " + getIntent().getStringExtra("USERNAME"));
-        Log.d(TAG, "Username on this device: " + username);
-
-        connectionManager = ServerConnectionManager.getInstance(username);
-
-        sendButton.setOnClickListener(v -> {
-            String message = messageEditText.getText().toString().trim();
-            if (!message.isEmpty()) {
-                connectionManager.sendMessage(message);
-                messageEditText.setText("");
-            }
-        });
-
-        exitButton.setOnClickListener(v -> {
-            connectionManager.sendMessage("DISCONNECT:" + username);
-
-            Intent serviceIntent = new Intent(ChatActivity.this, MyChatService.class);
-            stopService(serviceIntent);
-
-            connectionManager.disconnect();
-
-            Intent intent = new Intent(ChatActivity.this, MainActivity.class);
-            startActivity(intent);
-            finish();
-        });
-
-        openGameMenuButton.setOnClickListener(v -> {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            GameOptionsBottomSheet gameOptionsBottomSheet = new GameOptionsBottomSheet();
-            gameOptionsBottomSheet.show(fragmentManager, gameOptionsBottomSheet.getTag());
-        });
-
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("chat_message"));
-        Log.d(TAG, "ChatActivity - BroadcastReceiver registered in onResume()");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
-        Log.d(TAG, "ChatActivity - BroadcastReceiver unregistered in onPause()");
     }
 
     public void initiateTicTacToeGame() {
@@ -250,7 +378,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void handleStartTicTacToe(String message) {
-        // Format: START_TICTACTOE:gameId:player1:player2
         String[] parts = message.split(":");
         if (parts.length == 4 && parts[0].equals("START_TICTACTOE")) {
             String gameId = parts[1];
@@ -288,7 +415,7 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    //FOUR IN A ROW
+    // FOUR IN A ROW
     public void initiateFourInARowGame() {
         String gameId = generateGameId();
         String inviteMessage = "NEW_FOURINAROW:" + gameId + ":" + username;
@@ -341,7 +468,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void handleStartFourInARow(String message) {
-        // Format: START_FOURINAROW:gameId:player1:player2
         String[] parts = message.split(":");
         if (parts.length == 4) {
             String gameId = parts[1];
@@ -380,8 +506,25 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("chat_message"));
+        Log.d(TAG, "ChatActivity - BroadcastReceiver registered in onResume()");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
+        Log.d(TAG, "ChatActivity - BroadcastReceiver unregistered in onPause()");
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "ChatActivity onDestroy() - Disconnecting.");
+        if (requestQueue != null) {
+            requestQueue.cancelAll(TAG);
+        }
     }
 }

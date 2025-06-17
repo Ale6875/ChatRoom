@@ -14,6 +14,17 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class FourInARowActivity extends AppCompatActivity implements FourInARowView.OnMoveListener {
 
     private static final String TAG = "FourInARowActivity";
@@ -27,7 +38,7 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
     private Handler handler = new Handler();
     private boolean opponentRequestedReset = false;
     private int initialPlayer = 1;
-
+    private boolean gameEnded = false;
 
     private final BroadcastReceiver moveReceiver = new BroadcastReceiver() {
         @Override
@@ -54,10 +65,22 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
                 if (parts.length == 3 && parts[1].equals(gameId)) {
                     int winner = Integer.parseInt(parts[2]);
                     handler.post(() -> {
-                        String result = (winner == 0) ? "It's a draw!" :
-                                (winner == myPlayerNumber) ? "You won!" : "Opponent won!";
-                        statusTextView.setText(result);
-                        isMyTurn = false;
+                        if (!gameEnded) { // Only process if game hasn't already ended
+                            gameEnded = true;
+                            String result = (winner == 0) ? "It's a draw!" :
+                                    (winner == myPlayerNumber) ? "You won!" : "Opponent won!";
+                            statusTextView.setText(result);
+                            isMyTurn = false;
+
+                            // Update stats only here
+                            if (winner == 0) {
+                                updateStats("fourinarow", "draw");
+                            } else if (winner == myPlayerNumber) {
+                                updateStats("fourinarow", "win");
+                            } else {
+                                updateStats("fourinarow", "loss");
+                            }
+                        }
                     });
                 }
             } else if (msg.startsWith("EXIT_FOURINAROW:")) {
@@ -67,7 +90,6 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
                     finish();
                 }
             }
-
         }
     };
 
@@ -96,6 +118,7 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
 
                     gameView.resetBoard();
                     opponentRequestedReset = false;
+                    gameEnded = false; // Reset game ended flag
 
                     statusTextView.setText("Game reset! " + (isMyTurn ? "Your turn" : "Opponent's turn"));
                     Toast.makeText(FourInARowActivity.this, "Game reset!", Toast.LENGTH_SHORT).show();
@@ -145,11 +168,41 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
             }
         });
 
-
         exitButton.setOnClickListener(v -> {
             connectionManager.sendMessage("EXIT_FOURINAROW:" + gameId);
             finish();
         });
+    }
+
+    private void updateStats(String gameType, String result) {
+        Log.d(TAG, "Updating stats - gameType: " + gameType + ", result: " + result);
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://51.21.214.199/update_stats.php",
+                response -> {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        if (jsonResponse.getBoolean("success")) {
+                            Log.d(TAG, "Stats updated successfully");
+                        } else {
+                            Log.e(TAG, "Stats update failed: " + jsonResponse.getString("message"));
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error parsing stats update response", e);
+                    }
+                },
+                error -> Log.e(TAG, "Error updating stats", error)) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("username", username);
+                params.put("game_type", gameType);
+                params.put("result", result);
+                Log.d(TAG, "Stats update params: " + params);
+                return params;
+            }
+        };
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(stringRequest);
     }
 
     private void updateStatus() {
@@ -158,7 +211,7 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
 
     @Override
     public void onMoveMade(int row, int col, int player) {
-        if (!isMyTurn) return;
+        if (!isMyTurn || gameEnded) return;
 
         boolean placed = gameView.placeChip(row, col, myPlayerNumber);
         if (placed) {
@@ -171,6 +224,8 @@ public class FourInARowActivity extends AppCompatActivity implements FourInARowV
     }
 
     private void checkWin(int lastRow, int lastCol, int player) {
+        if (gameEnded) return;
+
         int[][] board = gameView.getBoard();
         if (hasFourConnected(board, lastRow, lastCol, player)) {
             connectionManager.sendMessage("GAME_OVER4:" + gameId + ":" + player);

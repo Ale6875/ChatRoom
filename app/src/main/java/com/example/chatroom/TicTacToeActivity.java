@@ -12,8 +12,20 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class TicTacToeActivity extends AppCompatActivity implements TicTacToeView.OnGameEventListener {
 
@@ -61,7 +73,7 @@ public class TicTacToeActivity extends AppCompatActivity implements TicTacToeVie
                             Log.e(TAG, "Error parsing move", e);
                         }
                     }
-                } else if (message.startsWith("RESET_GAME_CONFIRMED:"))  {
+                } else if (message.startsWith("RESET_GAME_CONFIRMED:")) {
                     handleResetConfirmed(intent);
                 } else if (message.startsWith("EXIT_TICTACTOE:")) {
                     String[] parts = message.split(":");
@@ -73,38 +85,6 @@ public class TicTacToeActivity extends AppCompatActivity implements TicTacToeVie
             }
         }
     };
-
-    private void checkGameEndConditions(int lastPlayer) {
-        int[][] board = ticTacToeView.getBoardState();
-
-        if (checkWin(board, lastPlayer)) {
-            onGameWon(lastPlayer);
-        } else if (isBoardFull(board)) {
-            onGameDraw();
-        }
-    }
-
-    private boolean checkWin(int[][] board, int player) {
-        for (int i = 0; i < 3; i++) {
-            if (board[i][0] == player && board[i][1] == player && board[i][2] == player) return true;
-        }
-        for (int j = 0; j < 3; j++) {
-            if (board[0][j] == player && board[1][j] == player && board[2][j] == player) return true;
-        }
-        if (board[0][0] == player && board[1][1] == player && board[2][2] == player) return true;
-        if (board[0][2] == player && board[1][1] == player && board[2][0] == player) return true;
-
-        return false;
-    }
-
-    private boolean isBoardFull(int[][] board) {
-        for (int[] row : board) {
-            for (int cell : row) {
-                if (cell == 0) return false;
-            }
-        }
-        return true;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -182,6 +162,13 @@ public class TicTacToeActivity extends AppCompatActivity implements TicTacToeVie
                 sendMessage("GAME_OVER:" + gameId + ":" + player);
                 isMyTurn = false;
                 updateTurnDisplay();
+
+                // Update stats
+                if (player == myPlayerNumber) {
+                    updateStats("tictactoe", "win");
+                } else {
+                    updateStats("tictactoe", "loss");
+                }
             }
         });
     }
@@ -194,8 +181,70 @@ public class TicTacToeActivity extends AppCompatActivity implements TicTacToeVie
                 sendMessage("GAME_OVER:" + gameId + ":0");
                 isMyTurn = false;
                 updateTurnDisplay();
+
+                // Update stats
+                updateStats("tictactoe", "draw");
             }
         });
+    }
+
+    private void updateStats(String gameType, String result) {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://51.21.214.199/update_stats.php",
+                response -> {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        if (jsonResponse.getBoolean("success")) {
+                            Log.d(TAG, "Stats updated successfully");
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error parsing stats update response", e);
+                    }
+                },
+                error -> Log.e(TAG, "Error updating stats", error)) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("username", username);
+                params.put("game_type", gameType);
+                params.put("result", result);
+                return params;
+            }
+        };
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(stringRequest);
+    }
+
+    private void checkGameEndConditions(int lastPlayer) {
+        int[][] board = ticTacToeView.getBoardState();
+
+        if (checkWin(board, lastPlayer)) {
+            onGameWon(lastPlayer);
+        } else if (isBoardFull(board)) {
+            onGameDraw();
+        }
+    }
+
+    private boolean checkWin(int[][] board, int player) {
+        for (int i = 0; i < 3; i++) {
+            if (board[i][0] == player && board[i][1] == player && board[i][2] == player) return true;
+        }
+        for (int j = 0; j < 3; j++) {
+            if (board[0][j] == player && board[1][j] == player && board[2][j] == player) return true;
+        }
+        if (board[0][0] == player && board[1][1] == player && board[2][2] == player) return true;
+        if (board[0][2] == player && board[1][1] == player && board[2][0] == player) return true;
+
+        return false;
+    }
+
+    private boolean isBoardFull(int[][] board) {
+        for (int[] row : board) {
+            for (int cell : row) {
+                if (cell == 0) return false;
+            }
+        }
+        return true;
     }
 
     private void sendMessage(String message) {
