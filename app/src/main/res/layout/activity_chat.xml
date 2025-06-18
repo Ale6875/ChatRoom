@@ -54,6 +54,7 @@
                 android:id="@+id/sendButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textSize="12sp"
                 android:text="Send" />
         </LinearLayout>
     </LinearLayout>
@@ -64,7 +65,6 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:orientation="vertical"
-        android:background="#f0f0f0"
         android:padding="8dp">
 
         <LinearLayout
@@ -80,6 +80,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="My Stats"
+                android:textSize="12sp"
                 android:layout_marginEnd="4dp"/>
 
             <Button
@@ -88,6 +89,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Scoreboard"
+                android:textSize="12sp"
                 android:layout_marginEnd="4dp"/>
 
             <Button
@@ -95,6 +97,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:textSize="12sp"
                 android:text="Games"/>
         </LinearLayout>
 
@@ -103,6 +106,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Exit Chat"
+            android:textSize="12sp"
             android:layout_gravity="center_horizontal"/>
     </LinearLayout>
 
